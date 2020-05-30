@@ -27,31 +27,34 @@ import random
 #write_data() DONE!  
     
     
-train_x, train_y, test_x, test_y = load_data()
+train_x, train_y, test_x, test_y, dev_x, dev_y= load_data()
 print(train_x.shape)
 print(train_y.shape)
 print(test_x.shape)
 print(test_y.shape)
 print(train_x[2].shape)
-plt.imshow(test_x[10].astype('int'))
+print(dev_x.shape)
+print(dev_y.shape)
+#plt.imshow(dev_x[10].astype('int'))
 
 
 
 
 train_x_flatten = train_x.reshape(train_x.shape[0], -1).T   # The "-1" makes reshape flatten the remaining dimensions
 test_x_flatten = test_x.reshape(test_x.shape[0], -1).T
-
+dev_x_flatten = dev_x.reshape(dev_x.shape[0], -1).T
 # Standardize data to have feature values between 0 and 1.
 train_x = train_x_flatten/255.
 test_x = test_x_flatten/255.
+dev_x = dev_x_flatten/255
 
 print(train_x.shape)
 print(test_x.shape)
 
 
-layers_dims = [17472, 20, 7, 5, 1] #  4-layer model
+layers_dims = [17472, 20, 15, 4, 7, 5, 1] #  4-layer model
 
-def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False):#lr was 0.009
+def L_layer_model(X, Y, DEV, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False):#lr was 0.009
     """
     Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID.
     
@@ -89,6 +92,7 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
         ### END CODE HERE ###
     
         # Backward propagation.
+        
         ### START CODE HERE ### (≈ 1 line of code)
         grads = L_model_backward(AL, Y, caches)
         ### END CODE HERE ###
@@ -101,6 +105,9 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
         # Print the cost every 100 training example
         if print_cost and i % 100 == 0:
             print ("Cost after iteration %i: %f" %(i, cost))
+            dev_AL, caches = L_model_forward(DEV["x"], parameters)
+            devcost = compute_cost(dev_AL, DEV["y"])
+            print("Dev cost afer iteration %i: %f" %(i, devcost))
         if print_cost and i % 100 == 0:
             costs.append(cost)
             
@@ -112,7 +119,11 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
  
     
     return parameters
-parameters = L_layer_model(train_x, train_y, layers_dims, num_iterations = 2500, print_cost = True)
+DEV = {
+   "x": dev_x,
+   "y": dev_y    
+}
+parameters = L_layer_model(train_x, train_y, DEV, layers_dims, num_iterations = 2500, print_cost = True)
 predictions_train = predict(train_x, train_y, parameters)
 predictions_test = predict(test_x, test_y, parameters)
 print_mislabeled_images(["female", "male"], test_x, test_y, predictions_test)

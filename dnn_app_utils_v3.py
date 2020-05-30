@@ -6,6 +6,7 @@ import os
 from glob import glob
 
 
+
 def sigmoid(Z):
     """
     Implements the sigmoid activation in numpy
@@ -89,8 +90,11 @@ def sigmoid_backward(dA, cache):
 
 def write_image_data(trainOnly = False):
     SOURCE_IMAGES_TRAIN = "/home/nick/Desktop/faces_ml/images"
-    train_images = []
-    test_images = []
+    images = {
+         "dev" : [],
+         "test" : [],
+         "train": []
+    }
     directory_name = "train"
     for subdir, dirs, files in os.walk(SOURCE_IMAGES_TRAIN):
         
@@ -98,29 +102,35 @@ def write_image_data(trainOnly = False):
             directory_name = "train"
         elif "test" in subdir:
             directory_name = "test"
+        elif "dev" in subdir:
+            directory_name = "dev"
         for file in files:
             if file.endswith('.jpg'):
-                if directory_name == "train":
-                    train_images += glob(os.path.join(subdir, file))
-                else:
-                    test_images += glob(os.path.join(subdir, file))
-                
+                    images.setdefault(directory_name, []).append( glob(os.path.join(subdir, file)))
+            
+    NUM_TRAIN_IMAGES = len(images["train"])
+    NUM_TEST_IMAGES = len(images["test"])
+    NUM_DEV_IMAGES = len(images["dev"])
    
-    NUM_TRAIN_IMAGES = len(train_images)
-    NUM_TEST_IMAGES = len(test_images)
+    print("TEST: %s , TRAIN: %s , DEV: %s" % (NUM_TEST_IMAGES, NUM_TRAIN_IMAGES, NUM_DEV_IMAGES))
+    
     HEIGHT = 64
     WIDTH = 91
     train_final = np.zeros((0, HEIGHT, WIDTH, 3))
     test_final = np.zeros((0, HEIGHT, WIDTH, 3))
+    dev_final = np.zeros((0, HEIGHT, WIDTH, 3))
     isMale_train = np.zeros((0, 1))
-    isMale_test = np.zeros((0,1))
-    
+    isMale_test = np.zeros((0, 1))
+    isMale_dev = np.zeros((0, 1))
     def parse_image_data(src):
+        print(src)
         image = cv2.imread(src)
+        print(image)
         image = cv2.resize(image, (WIDTH, HEIGHT))
         image = image.reshape(1, HEIGHT, WIDTH, 3)
         imagename = src.rsplit('.jpg', 1)[0].rsplit('/', 1)[1]
         gender = imagename.split('-', 1)[1][1]
+        
         return image, gender
     if trainOnly == True:
         prevData = h5py.File('data.h5', 'r')
@@ -131,8 +141,9 @@ def write_image_data(trainOnly = False):
             
     with h5py.File('data.h5', 'w') as hf:
         if trainOnly == False: 
-            for i,img in enumerate(train_images): 
-                imagearray, gender = parse_image_data(img)
+            for i,img in enumerate(images["train"]): 
+               
+                imagearray, gender = parse_image_data(img[0])
                 train_final = np.concatenate((train_final, imagearray))
                 '''image = cv2.imread(img)        
                 image = cv2.resize(image, (WIDTH, HEIGHT))  
@@ -162,8 +173,8 @@ def write_image_data(trainOnly = False):
                     compression_opts=9)    
         
     
-        for i, img in enumerate(test_images):
-                imagearray, gender = parse_image_data(img)
+        for i, img in enumerate(images["test"]):
+                imagearray, gender = parse_image_data(img[0])
                 test_final = np.concatenate((test_final, imagearray))
                 
                 if gender == 'M' :
@@ -185,6 +196,30 @@ def write_image_data(trainOnly = False):
                 maxshape=(1, NUM_TEST_IMAGES),
                 compression="gzip",
                 compression_opts=9)
+        
+        for i, img in enumerate(images["dev"]):
+                imagearray, gender = parse_image_data(img[0])
+                dev_final = np.concatenate((dev_final, imagearray))
+                
+                if gender == 'M' :
+                    isMale_dev = np.append(isMale_dev, np.ones((1, 1)), axis = 0)
+                else:
+                    isMale_dev = np.append(isMale_dev, np.zeros((1, 1)), axis = 0)
+                
+        hf.create_dataset(
+                name="dev_set_x",
+                data=dev_final,
+                shape=(NUM_DEV_IMAGES, HEIGHT, WIDTH, 3),
+                maxshape=(NUM_DEV_IMAGES, HEIGHT, WIDTH, 3),
+                compression="gzip",
+                compression_opts=9)
+        hf.create_dataset(
+                name="dev_set_y",
+                data=isMale_dev,
+                shape=(1, NUM_DEV_IMAGES),
+                maxshape=(1, NUM_DEV_IMAGES),
+                compression="gzip",
+                compression_opts=9)
 
 
 def load_data():
@@ -195,7 +230,10 @@ def load_data():
     test_dataset_x = np.array(train_dataset["test_set_x"][:])
     test_dataset_y = np.array(train_dataset["test_set_y"][:])
     
-    return train_dataset_x_orig, train_dataset_y_orig, test_dataset_x, test_dataset_y
+    dev_dataset_x = np.array(train_dataset["dev_set_x"][:])
+    dev_dataset_y = np.array(train_dataset["dev_set_y"][:])
+    
+    return train_dataset_x_orig, train_dataset_y_orig, test_dataset_x, test_dataset_y, dev_dataset_x, dev_dataset_y
 
 def initialize_parameters(n_x, n_h, n_y):
     """
@@ -498,7 +536,7 @@ def predict(X, y, parameters):
     
     # convert probas to 0/1 predictions
     for i in range(0, probas.shape[1]):
-        if probas[0,i] > 0.5:
+        if probas[0,i] > 0.9:
             p[0,i] = 1
         else:
             p[0,i] = 0
@@ -523,7 +561,6 @@ def print_mislabeled_images(classes, X, y, p):
     num_images = len(mislabeled_indices[0])
     for i in range(num_images):
         index = mislabeled_indices[1][i]
-        print(len(mislabeled_indices))
         plt.subplot(2, num_images, i + 1)
         plt.imshow(X[:,index].reshape(64,91,3), interpolation='nearest')
         plt.axis('off')

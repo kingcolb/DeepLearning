@@ -114,8 +114,8 @@ def write_image_data(trainOnly = False):
    
     print("TEST: %s , TRAIN: %s , DEV: %s" % (NUM_TEST_IMAGES, NUM_TRAIN_IMAGES, NUM_DEV_IMAGES))
     
-    HEIGHT = 64
-    WIDTH = 91
+    HEIGHT = 80
+    WIDTH = 114
     train_final = np.zeros((0, HEIGHT, WIDTH, 3))
     test_final = np.zeros((0, HEIGHT, WIDTH, 3))
     dev_final = np.zeros((0, HEIGHT, WIDTH, 3))
@@ -123,9 +123,7 @@ def write_image_data(trainOnly = False):
     isMale_test = np.zeros((0, 1))
     isMale_dev = np.zeros((0, 1))
     def parse_image_data(src):
-        print(src)
         image = cv2.imread(src)
-        print(image)
         image = cv2.resize(image, (WIDTH, HEIGHT))
         image = image.reshape(1, HEIGHT, WIDTH, 3)
         imagename = src.rsplit('.jpg', 1)[0].rsplit('/', 1)[1]
@@ -221,7 +219,7 @@ def write_image_data(trainOnly = False):
                 compression="gzip",
                 compression_opts=9)
 
-
+#write_image_data()
 def load_data():
     train_dataset = h5py.File('data.h5', "r")
     train_dataset_x_orig = np.array(train_dataset["train_set_x"][:])
@@ -279,7 +277,8 @@ def initialize_parameters_deep(layer_dims):
                     Wl -- weight matrix of shape (layer_dims[l], layer_dims[l-1])
                     bl -- bias vector of shape (layer_dims[l], 1)
     """
-    
+    np.random.seed(1)
+
     parameters = {}
     L = len(layer_dims)            # number of layers in the network
 
@@ -536,7 +535,7 @@ def predict(X, y, parameters):
     
     # convert probas to 0/1 predictions
     for i in range(0, probas.shape[1]):
-        if probas[0,i] > 0.9:
+        if probas[0,i] > 0.5:
             p[0,i] = 1
         else:
             p[0,i] = 0
@@ -562,6 +561,7 @@ def print_mislabeled_images(classes, X, y, p):
     for i in range(num_images):
         index = mislabeled_indices[1][i]
         plt.subplot(2, num_images, i + 1)
-        plt.imshow(X[:,index].reshape(64,91,3), interpolation='nearest')
+        plt.imshow(X[:,index].reshape(80,114,3), interpolation='nearest')
         plt.axis('off')
         plt.title("Prediction: " + classes[int(p[0, index])]+ " \n Class: " + classes[int(y[0,index])])
+

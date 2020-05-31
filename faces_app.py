@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from dnn_app_utils_v3 import *
 import random
 
-#np.random.seed(1)
+np.random.seed(1)
 
 
 
@@ -28,14 +28,7 @@ import random
     
     
 train_x, train_y, test_x, test_y, dev_x, dev_y= load_data()
-print(train_x.shape)
-print(train_y.shape)
-print(test_x.shape)
-print(test_y.shape)
-print(train_x[2].shape)
-print(dev_x.shape)
-print(dev_y.shape)
-#plt.imshow(dev_x[10].astype('int'))
+
 
 
 
@@ -48,13 +41,17 @@ train_x = train_x_flatten/255.
 test_x = test_x_flatten/255.
 dev_x = dev_x_flatten/255
 
-print(train_x.shape)
-print(test_x.shape)
 
 
-layers_dims = [17472, 20, 15, 4, 7, 5, 1] #  4-layer model
+
+layers_dims = [27360, 20, 15, 4, 7, 5, 1]
 
 def L_layer_model(X, Y, DEV, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False):#lr was 0.009
+    print(X.shape)
+    print(Y.shape)
+    print(layers_dims)
+    print(learning_rate)
+
     """
     Implements a L-layer neural network: [LINEAR->RELU]*(L-1)->LINEAR->SIGMOID.
     
@@ -96,7 +93,7 @@ def L_layer_model(X, Y, DEV, layers_dims, learning_rate = 0.0075, num_iterations
         ### START CODE HERE ### (≈ 1 line of code)
         grads = L_model_backward(AL, Y, caches)
         ### END CODE HERE ###
- 
+
         # Update parameters.
         ### START CODE HERE ### (≈ 1 line of code)
         parameters = update_parameters(parameters, grads, learning_rate)
@@ -110,6 +107,8 @@ def L_layer_model(X, Y, DEV, layers_dims, learning_rate = 0.0075, num_iterations
             print("Dev cost afer iteration %i: %f" %(i, devcost))
         if print_cost and i % 100 == 0:
             costs.append(cost)
+      
+            
             
     # plot the cost
     plt.plot(np.squeeze(costs))
@@ -126,5 +125,6 @@ DEV = {
 parameters = L_layer_model(train_x, train_y, DEV, layers_dims, num_iterations = 2500, print_cost = True)
 predictions_train = predict(train_x, train_y, parameters)
 predictions_test = predict(test_x, test_y, parameters)
+predictions_dev = predict(dev_x, dev_y, parameters)
 print_mislabeled_images(["female", "male"], test_x, test_y, predictions_test)
 #write_image_data()
